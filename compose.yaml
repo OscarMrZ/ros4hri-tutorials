@@ -1,0 +1,18 @@
+services:
+  workshop_container:
+    container_name: workshop_container
+    image: palrobotics/public-tutorials-alum-devel:latest
+    hostname: workshop_container
+    command: terminator
+    environment:
+      - DISPLAY=${DISPLAY}
+      - LOCAL_USER_ID=${LOCAL_USER_ID}
+      - LOCAL_GROUP_ID=${LOCAL_GROUP_ID}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ./ws:/home/user/ws
+      - ./config/default_cam.yaml:/home/user/.ros/camera_info/default_cam.yaml
+    devices:
+      - /dev/video0:/dev/video0
+      # "source=/dev/dri,target=/dev/dri,type=bind,consistency=cached" \
+    tty: true
