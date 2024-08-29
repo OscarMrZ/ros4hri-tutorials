@@ -13,17 +13,24 @@ RUN echo "ws_user ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 # Switch to the new user
 USER ws_user
 
-# Install the packages
+# Install the HRI packages
 WORKDIR /home/ws_user/hri_ws/src
 RUN git clone https://github.com/ros4hri/libhri.git
 RUN git clone https://github.com/ros4hri/hri_msgs.git -b humble-devel
 RUN git clone https://github.com/ros4hri/hri_rviz.git
 RUN git clone https://github.com/ros4hri/hri_face_detect.git
+RUN git clone https://github.com/ros4hri/hri_fullbody.git
+
+# Install the tutorial
+RUN git clone https://github.com/OscarMrZ/ros4hri-tutorials.git -b humble-devel
+RUN mkdir -p /home/ws_user/.ros/camera_info
+RUN cp ros4hri-tutorials/config/default_webcam_calibration.yml /home/ws_user/.ros/camera_info/default_cam.yaml
+
+# Install dependencies
 WORKDIR /home/ws_user/hri_ws
 RUN rosdep update && rosdep install -r --from-paths . --ignore-src --rosdistro humble -y
 RUN pip install mediapipe
-# hotfix broken dep
-RUN pip uninstall -y numpy 
+# RUN pip uninstall numpy
 
 # Source ROS 2 environment and build
 RUN /bin/bash -c "source /opt/ros/humble/setup.bash && colcon build --symlink-install"

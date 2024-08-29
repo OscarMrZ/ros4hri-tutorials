@@ -1,246 +1,88 @@
-# ros4hri-tutorials
+# ROS4HRI tutorials
 
-## Start the GitHub Codespaces
+Welcome to the ROS2 humble tutorial for the ROS4HRI [framework](https://wiki.ros.org/hri). This tutorial walks you through the basics for setting up a person identification pipeline. Using this information, you'll be able to perform different human-robot interactions. All the nodes used in the tutorial are [REP-155](https://www.ros.org/reps/rep-0155.html) compliant. 
 
-Start the Github Codespaces by clicking on `Code`, then `Codespaces`.
+## HRI packages
 
-### Connect to the remote desktop
-
-![Port forwarding](images/vscode-ports.png)
-
-In the Codespaces' VSCode interface, click on the `PORTS` tab (next to
-`TERMINAL`), and click on the *Forwarded Address* URL next to the `6080` port forward. Click on the
-small globe icon to open a VNC connection to the remote desktop. The password is
-`vscode`.
-
-This desktop environment is connected to the Codespaces: any GUI application
-that you start from the Codespaces' terminal (like `rviz`) will open in the remote desktop.
-
+* [libhri](https://github.com/ros4hri/libhri)
+* [hri_msgs](https://github.com/ros4hri/hri_msgs)
+* [hri_rviz](https://github.com/ros4hri/hri_rviz)
+* [hri_face_detect](https://github.com/ros4hri/hri_face_detect)
 
 ## Prepare the environment
 
 ### Initial environment preparation
 
-Your environment (called a *devcontainer*) is based on [ROS
-noetic](http://wiki.ros.org/noetic) with [some additional
-tools](.devcontainer/Dockerfile). It is ready to use for our tutorial.
+We'll use docker compose to launch a tutorial docker container based on this image (link). The image is based on ROS 2 humble and comes with all the necessary deps installed! 
 
-Let's simply create a basic ROS *workspace*, so that we can compile ROS nodes:
-
+```bash
+sudo apt install docker-compose
+git clone https://github.com/OscarMrZ/ros4hri-tutorials.git
+cd ros4hri-tutorials
+docker compose run --rm ws_docker
 ```
-mkdir -p ws/src
-cd ws
-catkin init
-catkin config --install
-cd ..
-```
-
-## Playing ROS 'bags'
-
-ROS bags are files containing ROS data (ROS *messages*) that have been
-previously recorded. We can *play* ROS bag to re-create the datastream as they
-were when they were recorded.
-
-### Start ROS
-
-In the same terminal, source your ROS environment:
-
-```
-source /opt/ros/noetic/setup.bash
-```
-
-> 💡 each time you open a new terminal, you first need to source your ROS
->  environment with this command.
-
-Then, start `roscore`
-
-```
-roscore
-```
-
-### Download the bag files
-
-I have prepared some bags for today's tutorial. Download them with `wget`:
-
-First, open a new terminal by clicking on the `+` at the right of the terminal
-panel.
-
-> 💡 you can rename your terminals by right-clicking on them. For instance,
-> name the first one `roscore` and the second one `bags`.
-
-```
-mkdir bags
-cd bags
-wget https://skadge.org/data/severin-head.bag
-wget https://skadge.org/data/severin-sitting-table.bag
-cd ..
-```
-
-> 💡 if you are running this tutorial on your computer directly (ie, not in a
-> devcontainer, you can use your webcam directly (instead of the bags file):
-> 
-> First install `usb_cam`: `apt install ros-noetic-usb-cam`
-> Then, start it, **with the provided calibration file** (or your own, if you
-> have a calibrated camera):
->
-> ```
-> rosrun usb_cam usb_cam_node _camera_info_url:="file:///`pwd`/default_webcam_calibration.yml"
-> ```
-
-### Display the content of the bag file
-
-
-Source the ROS environment, and play the pre-recorded bag file:
-
-```
-source /opt/ros/noetic/setup.bash
-rosbag play --loop bags/severin-head.bag
-```
-
-Type `rostopic list` to list the available ROS topic (ie, the ROS data
-channels). You should see at least `/usb_cam/image_raw` that contains the raw
-image pixels data.
-
-Open yet another terminal, source ROS, and open `rqt_image_view`:
-
-```
-source /opt/ros/noetic/setup.bash
-rqt_image_view
-```
-
-Switch to the remote desktop tab. You should see the RQT `image_view`
-interface. Select the `/usb_cam/image_raw` topic in the drop-down list. It
-should display the video stream.
-
-![rqt_image_view](images/rqt_image_view.png)
-
-We can alos visualize the bag file in `rviz`, the main ROS tool for data
-visualization. Stop `rqt_image_view` (either close the window, or press Ctrl+C
-in the terminal), and start `rviz` instead:
-
-```
-rviz
-```
-
-*Add* an `Image` plugin, and select the `/usb_cam/image_raw` topic like on the
-screenshot below:
-
-![rviz](images/rviz.png)
-
 
 ## Face detection
 
-### Install hri_face_detect
+### Start the usb_cam node
 
-We first want to detect faces in our test bag file.
+This node simply reads the input from the webcam and the [camera intrinsics](config/default_webcam_calibration.yml) and publishes the images under `image_raw` and the camera parameters under `camera_info`. 
 
-We will use a ROS4HRI-compatible node for that purpose: [`hri_face_detect`](https://github.com/ros4hri/hri_face_detect/)
-
-To install it:
-
-First, let's get the code:
-
-```
-cd ws/src
-git clone https://github.com/ros4hri/hri_face_detect.git
-cd ..
+```bash
+ros2 run usb_cam usb_cam_node_exe &
 ```
 
-Then, build it:
-
-```
-source /opt/ros/noetic/setup.bash
-catkin build hri_face_detect
-```
-
-> 💡 all the dependencies are already included in your container, so the
-> build step should work straight away. Otherwise, you would have had to install
-> manually `mediapipe` (`pip3 install mediapipe`) and all the other ROS
-> dependencies (`rosdep install -r -y --from-paths src`).
+As you may notice, this command will run in the background, avoiding the need for opening more terminals in the docker. That's completely optional though. 
 
 ### Start the face detection node
 
-The `hri_face_detect` node has been installed in the `install/` subfolder. We
-need to tell ROS to look into that folder when starting a node. Type:
+The [`hri_face_detect`](https://github.com/ros4hri/hri_face_detect) package performs fast face detection using YuNet face detector and Mediapipe Face Mesh. This node publishes under the `/humans/faces/<faceID>/` topic different info about the detected face, such as the roi.
+Also, it will publish the list of tracked faces be published under the `/humans/faces/tracked`
 
-```
-source ./install/setup.bash
-```
+Importantly, this ID is not persistent: once a face is lost (for instance, the person goes out of frame), its ID is not valid nor meaningful anymore. To cater for a broad range of applications (where re-identification might not be always necessary), there is no expectation that the face detector will attempt to recognise the face and re-assign the same face ID if the person reappears.
 
-Then, you can start the face detection node, remapping the default image topic
-to the one actually published by the camera:
+There is a one-to-one relationship between this face ID and the estimated 6D pose of the head. The node publishes a head pose estimation with a TF frame named `face_<faceID>`. 
 
-```
-roslaunch hri_face_detect detect.launch rgb_camera:=usb_cam filtering_frame:=head_camera
+```bash
+ros2 launch hri_face_detect face_detect.launch.py
 ```
 
-You should immediately see on the console that some faces are indeed detected.
-Let's visualise them.
-
+You should immediately see on the console that some faces are indeed detected. Let's visualise them.
 
 #### Visualise the result
 
-Open another terminal, and source ROS.
+Open another terminal in the same docker using
+
+```
+docker exec -it ws_docker bash
+```
 
 We can check that the faces are detected and published at ROS message by simply typing:
 
 ```
-rostopic echo /humans/faces/tracked
+ros2 topic echo /humans/faces/tracked
 ```
 
-We can also use `rviz` to display the faces with the facial landmarks.
-Then, in `rviz`, set the fixed frame to `head_camera`, and enable the `Humans` and TF plugins:
+We can also use `rviz2` to display the faces with the facial landmarks.
+Then, in `rviz2`, set the fixed frame to `head_camera`, and enable the `Humans` and TF plugins:
 
 ![rviz human plugin](images/rviz-humans-plugin.png)
 
-Configure the `Humans` plugin to use the `/usb_cam/image_raw` topic. You should see the
-face being displayed, as well as its estimated 6D position:
+Configure the `Humans` plugin to use the `/usb_cam/image_raw` topic. You should see the face being displayed with the landmarks. Also, set up the `TF` plugin in order to see the face position in 3D. 
 
 ![rviz displaying faces](images/rviz-faces.png)
 
-We are effectively running the face detector in a Docker container, running in a virtual machine somewhere in a Github datacentre!
+We are effectively running the face detector, extracting features and 3D position in a Docker container, no GPU needed! 
 
-### Install hri_fullbody
+## Body detection
 
-Next, let's detect 3D skeletons in the image.
-
-We will use the ROS4HRI-compatible [`hri_fullbody`](https://github.com/ros4hri/hri_fullbody/) node.
-
-To install it:
-
-First, let's get the code:
-
-```
-cd ws/src
-git clone https://github.com/ros4hri/hri_fullbody.git
-cd ..
-```
-
-
-Then, build it:
-
-```
-catkin build hri_fullbody
-```
-
-> 💡 again, all the dependencies are already installed. To do it manually: `pip3
-> install mediapipe ikpy` followed by `rosdep install -r -y --from-paths src`.
+First, open yet another terminal connected to the docker. 
 
 ### Start the body detection
 
-First, go back to the terminal playing the bag file. Stop it (Ctrl+C), and start
-the second bag file:
 
-```
-rosbag play --loop --clock severin-sitting-table.bag
-```
+```bash
 
-Now, open a new terminal, and source `install/setup.bash` (this will also
-automatically source `/opt/ros/noetic.setup.bash`):
-
-```
-cd ws
-source install/setup.bash
 ```
 
 Start the body detector:

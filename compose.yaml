@@ -1,0 +1,13 @@
+services:
+  ws_docker:
+    container_name: ws_docker
+    image: ws_docker
+    hostname: ws_docker
+    environment:
+      - DISPLAY=${DISPLAY}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    devices:
+      - /dev/video0:/dev/video0
+    stdin_open: true
+    tty: true
