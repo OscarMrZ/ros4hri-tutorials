@@ -1,8 +1,8 @@
 services:
   ws_docker:
-    container_name: ws_docker
-    image: ws_docker
-    hostname: ws_docker
+    container_name: ws_container
+    image: roscon_ws
+    hostname: ws_container
     environment:
       - DISPLAY=${DISPLAY}
     volumes:

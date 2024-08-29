@@ -16,10 +16,17 @@ Welcome to the ROS2 humble tutorial for the ROS4HRI [framework](https://wiki.ros
 We'll use docker compose to launch a tutorial docker container based on this image (link). The image is based on ROS 2 humble and comes with all the necessary deps installed! 
 
 ```bash
+xhost +local:docker
 sudo apt install docker-compose
 git clone https://github.com/OscarMrZ/ros4hri-tutorials.git
 cd ros4hri-tutorials
-docker compose run --rm ws_docker
+docker compose up
+```
+
+We will work with different terminal windows. To connect to the running docker simply execute the following command in each of them. 
+
+```
+docker exec -it ws_container bash
 ```
 
 ## Face detection
@@ -50,12 +57,6 @@ ros2 launch hri_face_detect face_detect.launch.py
 You should immediately see on the console that some faces are indeed detected. Let's visualise them.
 
 #### Visualise the result
-
-Open another terminal in the same docker using
-
-```
-docker exec -it ws_docker bash
-```
 
 We can check that the faces are detected and published at ROS message by simply typing:
 
