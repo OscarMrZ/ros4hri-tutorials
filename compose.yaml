@@ -1,7 +1,7 @@
 services:
   ws_docker:
     container_name: ws_container
-    image: oscarmrz/ros4hri_tutorial
+    image: roscon_test
     hostname: ws_container
     environment:
       - DISPLAY=${DISPLAY}
