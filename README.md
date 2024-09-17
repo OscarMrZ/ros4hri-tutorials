@@ -1,13 +1,18 @@
 # ROS4HRI tutorials
 
-Welcome to the ROS2 humble tutorial for the ROS4HRI [framework](https://wiki.ros.org/hri). This tutorial walks you through the basics for setting up a person identification pipeline. Using this information, you'll be able to perform different human-robot interactions. All the nodes used in the tutorial are [REP-155](https://www.ros.org/reps/rep-0155.html) compliant. 
+Welcome to the ROS2 humble tutorial for the ROS4HRI [framework](https://wiki.ros.org/hri). This tutorial walks you through the basics for setting up a person identification pipeline that can be used for. Using this information, you'll be able to perform different human-robot interactions. All the nodes used in the tutorial are [REP-155](https://www.ros.org/reps/rep-0155.html) compliant. 
 
 ## HRI packages
 
-* [libhri](https://github.com/ros4hri/libhri)
-* [hri_msgs](https://github.com/ros4hri/hri_msgs)
-* [hri_rviz](https://github.com/ros4hri/hri_rviz)
+We are gonna using a docker with the following packages and their dependecies already installed: 
+
 * [hri_face_detect](https://github.com/ros4hri/hri_face_detect)
+* [hri_face_identification]([https://gitlab/ros4hri/hri_face_identification](https://github.com/ros4hri/hri_face_identification))
+* [hri_body_detect](https://github.com/ros4hri/hri_body_detect)
+* [hri_face_body_matcher](https://github.com/ros4hri/hri_face_body_matcher)
+* [hri_person_manager](https://github.com/ros4hri/hri_person_manager)
+* [hri_rviz](https://github.com/ros4hri/hri_rviz)
+
 
 ## Prepare the environment
 
@@ -36,19 +41,19 @@ docker exec -it ws_container bash
 This node simply reads the input from the webcam and the [camera intrinsics](config/default_webcam_calibration.yml) and publishes the images under `image_raw` and the camera parameters under `camera_info`. 
 
 ```bash
-ros2 run usb_cam usb_cam_node_exe &
+ros2 run usb_cam usb_cam_node_exe
 ```
-
-As you may notice, this command will run in the background, avoiding the need for opening more terminals in the docker. That's completely optional though. 
 
 ### Start the face detection node
 
-The [`hri_face_detect`](https://github.com/ros4hri/hri_face_detect) package performs fast face detection using YuNet face detector and Mediapipe Face Mesh. This node publishes under the `/humans/faces/<faceID>/` topic different info about the detected face, such as the roi.
+The [`hri_face_detect`](https://github.com/ros4hri/hri_face_detect) package performs fast face detection using YuNet face detector and Mediapipe Face Mesh. This node publishes under the `/humans/faces/<faceID>/` topic different info about the detected face, such as the ROI.
 Also, it will publish the list of tracked faces be published under the `/humans/faces/tracked`
 
 Importantly, this ID is not persistent: once a face is lost (for instance, the person goes out of frame), its ID is not valid nor meaningful anymore. To cater for a broad range of applications (where re-identification might not be always necessary), there is no expectation that the face detector will attempt to recognise the face and re-assign the same face ID if the person reappears.
 
 There is a one-to-one relationship between this face ID and the estimated 6D pose of the head. The node publishes a head pose estimation with a TF frame named `face_<faceID>`. 
+
+Let's start the face detection node: 
 
 ```bash
 ros2 launch hri_face_detect face_detect.launch.py
@@ -114,7 +119,7 @@ ros2 launch hri_person_manager person_manager.launch.py robot_reference_frame:=d
 If the face and body detector are still running, you might see that
 `hri_person_manager` is already creating some *anonymous* persons: the node
 knows that some persons must exist (since faces and bodies are detected), but it
-does not know *who* these persons are
+does not know *who* these persons are. 
 
 ### Display the person feature graph
 
@@ -132,12 +137,14 @@ You should see a graph similar to:
 
 ![ROS4HRI graph](images/ros4hri-graph.png)
 
+Note that the person manager will generate as many anonymous people as new faces and bodies.
+
 ### Connecting the person feature graph
 
 First, let's manually tell `hri_person_manager` that the face and body are
 indeed parts of the same person. TO do so, we need to publish a *match* between
 the two ids (in this example, `rlkas` (the face) and `mnavu` (the body), but
-your IDs might be different, as they are randomly chosen)
+your IDs might be different, as they are randomly chosen).
 
 In a new terminal (with ROS sourced):
 
@@ -152,8 +159,7 @@ The graph updates to:
 > ⚠️  do not forget to change the face and body IDs to match the ones in your system!
 
 > 💡 the values `2` and `3` correspond respectively to a face and a body. See
-> [hri_msgs/IdsMatch](https://github.com/ros4hri/hri_msgs/blob/master/msg/IdsMatch.msg)
-> for the list of constants.
+> [hri_msgs/IdsMatch](https://github.com/ros4hri/hri_msgs/blob/master/msg/IdsMatch.msg) for the list of constants.
 
 ### Manually identifying the person
 
@@ -170,7 +176,7 @@ The graph updates to:
 
 ![ROS4HRI graph](images/ros4hri-graph-3.png)
 
-Know that the person is 'known' (ie, at least one person 'part' is associated to
+Now that the person is 'known' (that is, at least one person 'part' is associated to
 a person ID) the automatically-generated 'anonymous' person is replaced by the
 actual person. Note that we only need to id one person part to start connecting the graph, but we could have multiple ids (face, body or even voice)
 
@@ -179,7 +185,7 @@ We are doing it manually here, but in practice, we want to do it automatically.
 ### Running automatic face identification
 
 To get 'real' people, we need a node able to match for instance a *face* to a unique and
-stable *person*: a face identification node. Luckily, we have one of those in the docker: `hri_face_identification`, a ROS4HRI identification module. This node will publish candidates between a `faceID` and a `personID` for us. Importantly, this node won't manage assembling the person, it only publishes matches. It will be the task of the person manager to assemble the person feature graph. 
+stable *person*: a face identification node. Luckily, we have one of those in the docker: `hri_face_identification`, a ROS4HRI identification module. This node will publish candidates between a `faceID` and a `personID` for us. Importantly, this node won't manage assembling the person, it only publishes matches. It will be the task of the person manager to assemble the person feature graph, as we tested manually. 
 
 ```
 ros2 launch hri_face_identification face_identification_with_args.launch.py
@@ -188,6 +194,8 @@ ros2 launch hri_face_identification face_identification_with_args.launch.py
 ### Running automatic face and body matching
 
 In the same way that `hri_face_identification` automatically publishes matches between a face and a person, we have available another identification node, called `hri_face_body_matcher`, that publishes possible matches between given face and a body. This will allow us to fully connect a person with its face and body.
+
+Note that in this case, no connection is directly created with the person, as this node matches bodies and faces, not bodies and person. 
 
 ```
 ros2 launch hri_face_body_matcher hri_face_body_matcher.launch.py
@@ -206,17 +214,14 @@ For instance, from the following graph, try to guess which are the most likely
 
 Response in the paper (along with the exact algorithm!): [the 'Mr Potato' paper](https://academia.skadge.org/publis/lemaignan2024probabilistic.pdf).
 
-## If you want more...!
+## Setting up some interactions
 
-Here a few additional tasks you might want to try, to further explore ROS4HRI:
+Now we have information to properly identify individual people, let's use it to do some HRIs using a the `expressive_eyes` package, which simulates the head of a Tiago Pro:
 
-- Write a small Python script that list on the console the people around the
-  robot ([hint!](https://www.phind.com/search?cache=rhu3n4zmjwshfp0h3vp29b9w)).
+1. Store and recognize the first person that is identified. The robot will only interact with this person, from now on, the target, ignoring the rest. Here you have an starting point. 
+2. Show a positive [expression](https://github.com/ros4hri/hri_msgs/blob/master/msg/Expression.msg) when the person in from of the robot is the target and a sad emotion otherwise. 
+3. Follow 
 
-- write a node (C++ or Python) to automatically match faces and bodies. One
-  approach consists in computing the overlap of the regions of interest of pairs
-  of (face, body), and compute a likelihood based on that.
+## Additional info
 
-  Check the [`pyhri` API documentation](https://pyhri.readthedocs.io/en/latest/)
-  here, and the [C++ `libhri` API
-  documentation](http://docs.ros.org/en/noetic/api/hri/html/c++/) here.
+You may check the [`pyhri` API documentation](https://pyhri.readthedocs.io/en/latest/)here, and the [C++ `libhri` API documentation](http://docs.ros.org/en/noetic/api/hri/html/c++/) here.
