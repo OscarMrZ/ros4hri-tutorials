@@ -11,7 +11,7 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - ./ws:/home/user/ws
-      - ./config/default_cam.yaml:/home/user/.ros/camera_info/default_cam.yaml
+      - ./.ros:/home/user/.ros
     devices:
       - /dev/video0:/dev/video0
       # "source=/dev/dri,target=/dev/dri,type=bind,consistency=cached" \
