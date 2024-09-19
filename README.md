@@ -21,21 +21,21 @@ We are gonna using a docker with the following packages and their dependecies al
 We'll use docker compose to launch a tutorial docker container based on this image (link). The image is based on ROS 2 humble and comes with all the necessary deps installed! 
 
 ```bash
-xhost +local:docker
+xhost +
 sudo apt install docker-compose
 git clone https://github.com/OscarMrZ/ros4hri-tutorials.git -b humble-devel
 cd ros4hri-tutorials
-docker compose up
+sudo chmod +x start.sh
+./start.sh
 ```
 
-We will work with different terminal windows. The docker container has been prepared to work with terminator, making easy to open multiple windows inside it. 
+We will work with different terminal windows for executing the different processes. The docker container has been prepared to work with terminator, making easy to open multiple windows inside it. The most useful shortcuts are:
 
-In the first window that will open:
+* **Ctrl+Shift+O** -> Split terminal horizontally
+* **Ctrl+Shift+E** -> Split terminal vertically
+* **Ctrl+Shift+W** -> Close terminal
 
-```
-echo "source /opt/pal/alum/setup.bash" >> ~/.bashrc
-source ~/.bashrc
-```
+You can also just right click and select an option. 
 
 ## Face detection
 
@@ -45,7 +45,10 @@ This node simply reads the input from the webcam and the [camera intrinsics](con
 
 ```bash
 ros2 run usb_cam usb_cam_node_exe
+ros2 run tf2_ros static_transform_publisher 0 0 1.0 -0.707 0 0 0.707 world default_cam
 ```
+
+We also have to publish an approximate position of the camera for visualization purposes. 
 
 ### Start the face detection node
 
@@ -137,7 +140,7 @@ In a different terminal, run:
 
 ```
 ros2 run hri_person_manager show_humans_graph
-evince /tmp/graph.pdf
+mupdf /tmp/graph.pdf
 ```
 
 You should see a graph similar to:
@@ -145,6 +148,8 @@ You should see a graph similar to:
 ![ROS4HRI graph](images/ros4hri-graph.png)
 
 Note that the person manager will generate as many anonymous people as new faces and bodies.
+
+Please take a screenshot for the next steps. 
 
 ### Connecting the person feature graph
 
@@ -231,23 +236,19 @@ Now we have information to properly identify individual people, let's use it to 
 
 ### Launching a simulated head
 
-First create a workspace to work in and clone the exercises starting point. 
+In order to quickstart the workshop, there is already a started package where you can start your tests. Let's build and source it. 
 
 ```bash
-mkdir -p roscon_ws/src
-cd roscon_ws/src
-git clone https://github.com/OscarMrZ/ros4hri_ws_exercises.git
-```
-
-And build it:
-
-```
-cd ..
+cd ws
 colcon build --symlink-install
 source install/setup.bash
 ```
 
-If you need to launch a simulated face for testing:
+You can simply run your solution with:
+bash
+```
+ros2 run target_person target_person
+```
 
 ```
 ros2 launch target_person launch_simulated_head.launch.py
