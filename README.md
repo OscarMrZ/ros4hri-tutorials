@@ -23,7 +23,7 @@ We'll use docker compose to launch a tutorial docker container based on this ima
 ```bash
 xhost +
 sudo apt install docker-compose
-git clone https://github.com/OscarMrZ/ros4hri-tutorials.git -b humble-devel
+git clone https://github.com/OscarMrZ/ros4hri-tutorials.git
 cd ros4hri-tutorials
 sudo chmod +x start.sh
 ./start.sh
