@@ -254,10 +254,16 @@ ros2 run target_person target_person
 ros2 launch target_person launch_simulated_head.launch.py
 ```
 
+Tips: 
+
+* You can publish where the robot is looking publishing a PointStamped in */robot_face/look_at*
+* You can publish a [Expression msg](https://github.com/ros4hri/hri_msgs/blob/master/msg/Expression.msg) in */robot_face/expression *
+
 ![complex ROS4HRI graph](images/tiago_pro_face.png)
 
 Happy coding!
 
 ## Additional info
 
-You may check the [`pyhri` API documentation](https://pyhri.readthedocs.io/en/latest/)here, and the [C++ `libhri` API documentation](http://docs.ros.org/en/noetic/api/hri/html/c++/) here.
+* You may check the [`pyhri` API documentation](https://pyhri.readthedocs.io/en/latest/)here, and the [C++ `libhri` API documentation](http://docs.ros.org/en/noetic/api/hri/html/c++/) here. 
+* You can check the messages [definitions](https://github.com/ros4hri/hri_msgs) here
